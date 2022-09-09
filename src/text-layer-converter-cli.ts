@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import fs from 'fs';
@@ -26,7 +27,7 @@ yargs(hideBin(process.argv))
         })
     ),
     ({ filepath, format, outputFilepath }) => {
-      const outPath = outputFilepath || `${filepath}-text-layer.json`;
+      const outPath = outputFilepath || `${filepath.split('.')[0]}-text-layer.json`
 
       fs.readFile(filepath, (err, data) => {
         const textLayer = match({ err, data, format })
