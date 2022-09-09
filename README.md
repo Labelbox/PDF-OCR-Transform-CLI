@@ -3,6 +3,11 @@ CLI tool for transforming third party OCR formats into Labelbox's proprietary pd
 
 Scripts
 
+Install Dependencies
+```
+npm install
+```
+
 Build the CLI
 ```
 npm run build
