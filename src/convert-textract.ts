@@ -70,7 +70,7 @@ export const convertTextract = (rawTextractOutput: string) => {
           tokens: wordIds.map(wordId => {
             const wordBlock = wordMap.get(wordId);
             if (!wordBlock) {
-              throw Error(`Failed to find line block with id ${lineId}`)
+              throw Error(`Failed to find word block with id ${wordId}`)
             }
 
             return {
