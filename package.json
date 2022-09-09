@@ -1,10 +1,12 @@
 {
-  "name": "pdf-text-layer-ocr-transform-cli",
+  "name": "textlayer",
+  "bin": "./dist/pdf-ocr-converter-cli.js",
   "version": "1.0.0",
   "description": "A CLI tool for converting various third party OCR formats into Labelbox's proprietary pdf text layer format",
   "main": "dist/pdf-ocr-converter-cli.js",
   "scripts": {
-    "start": "tsc-watch --onsuccess \"node dist/pdf-ocr-converter-cli.js\""
+    "start": "tsc-watch --onsuccess \"node dist/text-layer-converter-cli.js\"",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
