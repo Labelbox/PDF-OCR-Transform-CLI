@@ -1,5 +1,5 @@
 import { match } from 'ts-pattern';
-import { TextLayer, TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
+import { TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
 import { Block, Job, Polygon } from './types/textract-types';
 
 /**
