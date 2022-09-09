@@ -17,3 +17,8 @@ Usage
 ```
 node dist/text-layer-converter-cli.js convert --filepath=<ocr_json_filepath> --format=<textract> --output-filepath=<output-text-layer-json-filepath>
 ```
+
+Help page
+```
+node dist/text-layer-converter-cli.js convert --help
+```
