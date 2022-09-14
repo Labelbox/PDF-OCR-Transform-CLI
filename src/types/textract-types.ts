@@ -1,5 +1,7 @@
 export type Job = {
   Blocks: Block[]
+  JobStatus: string;
+  NextToken: string;
 }
 
 export type Relationship = {

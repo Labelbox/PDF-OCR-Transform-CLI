@@ -1,15 +1,134 @@
+import { exec } from 'child_process';
+import fs from 'fs';
 import { match } from 'ts-pattern';
 import { TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
 import { Block, Job, Polygon } from './types/textract-types';
 
+export const generateTextractTextLayer = (inputFolder: string, outputFolder: string) => {
+  fs.readdir(inputFolder, (error, filenames) => {
+    if (error) {
+      throw error;
+    }
+
+    // Gather all pdfs in the input folder
+    const pdfFilenames = filenames.filter(filename => {
+      const filenameTokens = filename.split('.');
+      return filenameTokens[filenameTokens.length - 1] === 'pdf';
+    });
+
+    // Upload all the pdfs in the input folder to s3
+    pdfFilenames.forEach(pdfFilename => {
+      exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://lb-pdfs`, (error, stdout) => {
+        if (error) {
+          throw error;
+        }
+
+        console.log(stdout);
+
+        // The PDF was successfully uploaded to S3
+        // Run Textract OCR on the pdf
+        exec(`aws textract start-document-text-detection \
+         --document-location '{"S3Object":{"Bucket":"lb-pdfs","Name":"${pdfFilename}"}}'`,
+          async (error, stdout) => {
+            if (error) {
+              throw error;
+            }
+
+            const jobId = JSON.parse(stdout).JobId;
+
+            // Build the textract output and save the result to a file
+            const textractResult = await buildTextractOutput(jobId);
+            fs.writeFileSync(`${outputFolder}/${pdfFilename.split('.')[0]}-textract-ocr.json`, JSON.stringify(textractResult));
+
+            // Build the text layer from the textract output and save the result to a file
+            const textLayer = convertTextract(textractResult);
+            fs.writeFileSync(`${outputFolder}/${pdfFilename.split('.')[0]}-lb-textlayer.json`, JSON.stringify(textLayer));
+          })
+      });
+    })
+  })
+};
+
+export const buildTextractOutput = async (jobId: string) => {
+  const fullTextractOutput: Job[] = [];
+  // Get the Textract output by jobId
+  let jobResult = await tryFetchJobResult(jobId);
+
+  fullTextractOutput.push(jobResult);
+
+  // If the "NextToken" property is present in the data, this means there are more pages of results
+  while (jobResult.NextToken) {
+    jobResult = await tryFetchJobResult(jobId, jobResult.NextToken);
+    fullTextractOutput.push(jobResult);
+  }
+
+  return fullTextractOutput;
+};
+
+/**
+ * Attempts to fetch the result of the Textract ocr job by id.
+ * Depending on the sie of the pdf being analyzed the job sometimes take a while to finish.
+ * Exponentially backs of the delay between retires
+ * 
+ * @param jobId The job id
+ * @param nextToken The Textract OCR job results are paginated. The Id of the next page of results.
+ * @param maxAttempts Number of times to retry fetching the results.
+ * @returns The job results
+ */
+export const tryFetchJobResult = async (jobId: string, nextToken?: string, maxAttempts: number = 10) => (
+  // Depending on the size of the pdf being analyzed the job sometimes takes a while to finish.
+  // Exponentially back off the delay between retries to fetch the results.
+  await exponentialBackoff(
+    () => {
+      return new Promise<Job>((resolve, reject) => {
+        exec(`aws textract get-document-text-detection --job-id ${jobId} ${nextToken ? `--next-token ${nextToken}` : ''}`,
+          { maxBuffer: 1024 * 20000 },
+          (error, data) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(JSON.parse(data) as Job);
+          });
+      });
+    },
+    (result) => result.JobStatus === 'SUCCEEDED'
+  )
+)
+
+export const exponentialBackoff = async <T>(func: () => Promise<T>, didSucceed: (result: T) => boolean, maxAttempts = 10) => {
+  let tries = 0;
+  let delayMs = 100;
+
+  while (true) {
+    tries++;
+    delayMs = delayMs * 2;
+
+    if (tries > maxAttempts) {
+      throw new Error('Max retries exceeded')
+    }
+
+    // Wait for the delay before checking the status of the job.
+    await new Promise((resolve) => {
+      setTimeout(() => resolve(undefined), delayMs)
+    });
+
+    // Execute the handler
+    const result = await func();
+
+    // If the handler succeeds, return the result.
+    if (didSucceed(result)) {
+      return result;
+    }
+  }
+}
+
 /**
  * Converts Textract OCR output to Labelbox's text layer JSON format
  */
-export const convertTextract = (rawTextractOutput: string) => {
+const convertTextract = (jobs: Job[]) => {
   // Textract performs ocr on a document within tasks called "jobs"
   // There may be multiple jobs in the Textract OCR output.
   // Each job in the array contains the geometry of text found in the pdf during the execution of the job
-  const jobs = JSON.parse(rawTextractOutput) as Job[];
 
   // Blocks represent an abstract grouping of text in the document.
   // Blocks can have type "PAGE", "LINE", or "WORD"
