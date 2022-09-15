@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import { catchError, concatMap, EMPTY, of, Subject } from 'rxjs';
 import { match } from 'ts-pattern';
+import { getConfig } from './text-layer-converter-cli';
 import { TextLayer, TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
 import { Block, Job, Polygon } from './types/textract-types';
 
@@ -11,17 +12,11 @@ export const generateTextractTextLayer = (inputFolder: string, outputFolder: str
       throw error;
     }
 
-    // // Gather all pdf filenames in the input folder
-    // const pdfFilenames = filenames.map(filename => /.*(?=\.pdf)/g.exec(filename)?.[0])
-    //   .filter(filename => !!filename) as string[];
-
     // Gather all pdf filenames in the input folder
     const pdfFilenames = filenames.filter(filename => {
       const filenameTokens = filename.split('.');
       return filenameTokens[filenameTokens.length - 1] === 'pdf';
     });
-
-    console.log({ pdfFilenames })
 
     const failedPdfs: Map<string, any> = new Map();
 
@@ -34,10 +29,12 @@ export const generateTextractTextLayer = (inputFolder: string, outputFolder: str
         i++;
         const result$ = new Subject<TextLayer>();
         console.log(`=-=-=-=-=-=-=-=-= Processed ${i}/${pdfFilenames.length} pdfs =-=-=-=-=-=-=-=-=`)
-        console.log(`Uploading ${pdfFilename} to S3`)
+        const { s3Bucket } = getConfig();
+
+        console.log(`Uploading ${pdfFilename} to s3://${s3Bucket}`);
 
         // Upload the pdf to S3 so that it can be processed by Textract
-        exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://lb-pdfs`, (error) => {
+        exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://${s3Bucket}`, (error) => {
           if (error) {
             throw error;
           }
