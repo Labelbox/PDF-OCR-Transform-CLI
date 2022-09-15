@@ -1,6 +1,11 @@
 # PDF-OCR-Transform-CLI
 CLI tool for transforming third party OCR formats into Labelbox's proprietary pdf text layer format. The CLI takes a folder containing `.pdf`s as input, runs an OCR algorithm on the pdfs, and produces Labelbox text layer json files as an output.
 
+Currently Support OCR formats:
+* Textract
+* Adobe (coming soon)
+* GCP (coming soon)
+
 # Prerequisites
 The CLI invokes the `aws` cli behind the scenes to upload the pdfs to s3 and invoke Textract on them. You must have the aws cli installed gloablly and configured for your aws user.
 
