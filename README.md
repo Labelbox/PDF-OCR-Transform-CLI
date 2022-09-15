@@ -1,7 +1,7 @@
 # PDF-OCR-Transform-CLI
 CLI tool for transforming third party OCR formats into Labelbox's proprietary pdf text layer format. The CLI takes a folder containing `.pdf`s as input, runs an OCR algorithm on the pdfs, and produces Labelbox text layer json files as an output.
 
-Currently Support OCR formats:
+Currently Supported OCR formats:
 * Textract
 * Adobe (coming soon)
 * GCP (coming soon)
