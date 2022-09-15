@@ -12,9 +12,11 @@ The CLI invokes the `aws` cli behind the scenes to upload the pdfs to s3 and inv
 # Usage
 Included are bundled executables for multiple platfoms `text-layermacos`, `textlayer-linux`, `textlayer-win.exe`. These provide a more portable version of the cli that don't require you to install all the necessary dependencies with `npm install`.
 
-Commands:
+## Commands:
+
 Run OCR on all pdfs contained in the input folder and convert the result into Labelbox's text layer JSON.
-`convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder>
+
+`convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder>`
 
 Example (Mac)
 ```
