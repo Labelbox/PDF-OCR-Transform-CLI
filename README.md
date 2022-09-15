@@ -8,6 +8,15 @@ The CLI invokes the `aws` cli behind the scenes to upload the pdfs to s3 and inv
 
 [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-prereqs.html)
 
+# Configuration
+There is a configuration file named `config.json` at the root level of the directory that must be updated before first running the CLI.
+```
+{
+  // PDFS will be uploaded to s3://<s3Bucket>
+  "s3Bucket": "<name_of_s3_bucket>"
+}
+```
+
 
 # Usage
 Included are bundled executables for multiple platfoms `text-layermacos`, `textlayer-linux`, `textlayer-win.exe`. These provide a more portable version of the cli that don't require you to install all the necessary dependencies with `npm install`.
