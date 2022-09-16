@@ -42,7 +42,7 @@ Run OCR on all pdfs contained in the input folder and convert the result into La
 
 Example (Mac)
 ```
-./textlayer-macos convert --inputFolder input --format textract --outputFolder output
+./textlayer-macos convert --inputFolder input --format textract --outputFolder output --concurrency 10
 ```
 
 Help page
