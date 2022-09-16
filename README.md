@@ -30,7 +30,7 @@ Included are bundled executables for multiple platfoms `text-layermacos`, `textl
 
 Run OCR on all pdfs contained in the input folder and convert the result into Labelbox's text layer JSON.
 
-`convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder> --concurrency=10`
+`convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder> --concurrency 10`
 
 `--inputFolder` The input folder containing the pdfs
 
