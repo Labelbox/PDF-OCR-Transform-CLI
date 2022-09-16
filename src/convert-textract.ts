@@ -1,12 +1,14 @@
 import { exec } from 'child_process';
 import fs from 'fs';
-import { catchError, concatMap, EMPTY, of, Subject } from 'rxjs';
+import { concatMap, EMPTY, mergeMap, of, Subject } from 'rxjs';
 import { match } from 'ts-pattern';
 import { getConfig } from './text-layer-converter-cli';
 import { TextLayer, TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
 import { Block, Job, Polygon } from './types/textract-types';
 
-export const generateTextractTextLayer = (inputFolder: string, outputFolder: string) => {
+export const generateTextractTextLayer = (inputFolder: string, outputFolder: string, concurrency: number) => {
+  const startTime = Date.now();
+
   fs.readdir(inputFolder, (error, filenames) => {
     if (error) {
       throw error;
@@ -18,63 +20,89 @@ export const generateTextractTextLayer = (inputFolder: string, outputFolder: str
       return filenameTokens[filenameTokens.length - 1] === 'pdf';
     });
 
+    // Partition the filenames into separate arrays
+    // This allows for concurrency when processing the pdfs
+    const partitions: Array<Array<string>> = [];
+    for (let c = 0; c < concurrency; c++) {
+      partitions[c] = [];
+    }
+
+    pdfFilenames.forEach((filename, index) => {
+      partitions[index % partitions.length].push(filename);
+    });
+
     const failedPdfs: Map<string, any> = new Map();
 
+    const outputFiles = fs.readdirSync(outputFolder);
+
     let i = 0;
-    let currentPdfFilename = '';
-    of(...pdfFilenames).pipe(
-      // Sequentially process each pdf to avoid rate limits
-      concatMap((pdfFilename) => {
-        currentPdfFilename = pdfFilename;
-        i++;
-        const result$ = new Subject<TextLayer>();
-        console.log(`=-=-=-=-=-=-=-=-= Processed ${i}/${pdfFilenames.length} pdfs =-=-=-=-=-=-=-=-=`)
-        const { s3Bucket } = getConfig();
+    of(...partitions).pipe(
+      // Concurrently process each partition of filenames
+      mergeMap((filenamesPartition) => {
+        return of(...filenamesPartition).pipe(
+          // Sequentially process each pdf in each partition to avoid request rate limits
+          concatMap((pdfFilename) => {
+            i++;
 
-        console.log(`Uploading ${pdfFilename} to s3://${s3Bucket}`);
+            // Text layer output for the pdf already exists in the output folder, skip.
+            const textLayerFilename = generateTextLayerFilename(pdfFilename)
+            if (outputFiles.includes(textLayerFilename)) {
+              console.log(`*** Output for ${pdfFilename} already exists. Skipping. ***`)
+              return EMPTY;
+            }
 
-        // Upload the pdf to S3 so that it can be processed by Textract
-        exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://${s3Bucket}`, (error) => {
-          if (error) {
-            throw error;
-          }
+            const finished$ = new Subject<void>();
+            const { s3Bucket } = getConfig();
 
-          // The PDF was successfully uploaded to S3
-          // Run Textract OCR on the pdf
-          console.log(`Starting Textract OCR for ${pdfFilename}`)
-          exec(`aws textract start-document-text-detection \
-           --document-location '{"S3Object":{"Bucket":"lb-pdfs","Name":"${pdfFilename}"}}'`,
-            async (error, stdout) => {
-              if (error) {
-                throw error;
-              }
+            console.log(`=-=-=-=-=-=-=-=-= ${i}/${pdfFilenames.length} =-=-=-=-=-=-=-=-=`)
+            console.log(`Uploading ${pdfFilename} to s3://${s3Bucket} --recursive`);
 
-              const jobId = JSON.parse(stdout).JobId;
+            try {
+              // Upload the pdf to S3 so that it can be processed by Textract
+              exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://${s3Bucket}`, (error) => {
+                if (error) {
+                  throw error;
+                }
 
-              // Build the textract output
-              const textractResult = await buildTextractOutput(jobId);
+                // The PDF was successfully uploaded to S3
+                // Run Textract OCR on the pdf
+                console.log(`Starting Textract OCR for ${pdfFilename}`)
+                exec(`aws textract start-document-text-detection \
+  --document-location '{"S3Object":{"Bucket":"${s3Bucket}","Name":"${pdfFilename}"}}'`,
+                  async (error, stdout) => {
+                    if (error) {
+                      throw error;
+                    }
 
-              // Build the text layer from the textract output and save the result to a file
-              console.log(`Converting Textract output into text layer for ${pdfFilename}`)
-              const textLayer = convertTextract(textractResult);
-              console.log(`Text layer successfully generated for ${pdfFilename}`)
-              const pdfFilenameWithoutExtension = /.*(?=\.pdf)/g.exec(pdfFilename)?.[0]!;
-              fs.writeFileSync(`${outputFolder}/${pdfFilenameWithoutExtension}-lb-textlayer.json`, JSON.stringify(textLayer));
-              result$.next(textLayer);
-              result$.complete();
-            })
-        });
+                    const jobId = JSON.parse(stdout).JobId;
 
-        return result$;
+                    // Build the textract output
+                    const textractResult = await buildTextractOutput(jobId);
+
+                    // Build the text layer from the textract output and save the result to a file
+                    console.log(`Converting Textract output into text layer for ${pdfFilename}`)
+                    const textLayer = convertTextract(textractResult);
+                    console.log(`Text layer successfully generated for ${pdfFilename}`)
+                    fs.writeFileSync(`${outputFolder}/${textLayerFilename}`, JSON.stringify(textLayer));
+                    finished$.complete();
+                  })
+              });
+            }
+            catch (exception) {
+              console.log(`An error was encountered while processing ${exception}`);
+              console.error(exception);
+              failedPdfs.set(pdfFilename, exception);
+
+              return EMPTY;
+            }
+
+            return finished$;
+          })
+        );
       }),
-      catchError(error => {
-        console.log(`An error was encountered while processing ${currentPdfFilename}`);
-        console.error(error);
-        failedPdfs.set(currentPdfFilename, error);
-
-        return EMPTY;
-      })
-    ).subscribe();
+    ).subscribe({
+      complete: () => console.log(`=-=-=-= Job completed in ${(Date.now() - startTime) / 1000} seconds =-=-=-=`)
+    });
 
     if (failedPdfs.size) {
       console.log(`*** ${failedPdfs.size} failed pdfs ***`)
@@ -130,7 +158,18 @@ export const tryFetchJobResult = async (jobId: string, nextToken?: string, maxAt
   )
 )
 
-export const exponentialBackoff = async <T>(func: () => Promise<T>, didSucceed: (result: T) => boolean, maxAttempts = 10) => {
+/**
+ * Retries the provided handler function. Exponentially increases the delay between retries.
+ * @param func Handler func
+ * @param didSucceed Predicate function that takes in the result of the handler and returns a boolean indicating if
+ * the handler function succeeded.
+ * @param maxAttempts Throws an error if the handler function doesn't succeed before the max number of attmepts
+ * @returns 
+ */
+export const exponentialBackoff = async <T>(
+  func: () => Promise<T>,
+  didSucceed: (result: T) => boolean, maxAttempts = 10
+) => {
   let tries = 0;
   let delayMs = 100;
 
@@ -246,4 +285,18 @@ const convertPolygonToGeometry = (polygon: Polygon) => (
     width: polygon[2].X - polygon[0].X,
     height: polygon[2].Y - polygon[0].Y
   } as TextLayerGeometry
-)
+);
+
+/**
+ * Takes a pdf filename as input and returns the filename wihtout the file extension
+ * Example: "my-document.pdf" => "my-document"
+ * @param pdfFilename The pdf filename
+ * @returns 
+ */
+const getPdfFilenameWithoutExtension = (pdfFilename: string) => {
+  return /.*(?=\.pdf)/g.exec(pdfFilename)?.[0]!
+}
+
+const generateTextLayerFilename = (pdfFilename: string) => {
+  return `${getPdfFilenameWithoutExtension(pdfFilename)}-lb-textlayer.json`;
+}

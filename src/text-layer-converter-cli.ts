@@ -34,10 +34,15 @@ yargs(hideBin(process.argv))
           description: 'The output folder filepath. Defaults to "output/"',
           default: 'output'
         })
+        .option('concurrency', {
+          type: 'number',
+          description: 'Number of pdfs to process at the same time. CAUTION: Setting this number too high can cause request limits to be reached',
+          default: 10
+        })
     ),
-    ({ inputFolder, format, outputFolder }) => {
+    ({ inputFolder, format, outputFolder, concurrency }) => {
       if (format === 'textract') {
-        generateTextractTextLayer(inputFolder, outputFolder)
+        generateTextractTextLayer(inputFolder, outputFolder, concurrency);
       }
     }
   )
