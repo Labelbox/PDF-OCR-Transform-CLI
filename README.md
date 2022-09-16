@@ -33,8 +33,11 @@ Run OCR on all pdfs contained in the input folder and convert the result into La
 `convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder> --concurrency=10`
 
 `--inputFolder` The input folder containing the pdfs
+
 `--format` The OCR format to use (textract)
+
 `--outputFolder` The output folder to place the generated text layer json files
+
 `--concurrency` How many pdfs to process at the same time. CAUTION: Setting this value too high can result in rate limits being reached.
 
 Example (Mac)
