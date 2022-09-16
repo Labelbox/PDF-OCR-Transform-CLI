@@ -55,7 +55,7 @@ export const generateTextractTextLayer = (inputFolder: string, outputFolder: str
             const { s3Bucket } = getConfig();
 
             console.log(`=-=-=-=-=-=-=-=-= ${i}/${pdfFilenames.length} =-=-=-=-=-=-=-=-=`)
-            console.log(`Uploading ${pdfFilename} to s3://${s3Bucket} --recursive`);
+            console.log(`Uploading ${pdfFilename} to s3://${s3Bucket}`);
 
             try {
               // Upload the pdf to S3 so that it can be processed by Textract
