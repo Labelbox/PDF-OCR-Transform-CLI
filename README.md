@@ -3,8 +3,6 @@ CLI tool for transforming third party OCR formats into Labelbox's proprietary pd
 
 Currently Supported OCR formats:
 * Textract
-* Adobe (coming soon)
-* GCP (coming soon)
 
 # Prerequisites
 The CLI invokes the `aws` cli behind the scenes to upload the pdfs to s3 and invoke Textract on them. You must have the aws cli installed gloablly and configured for your aws user.
@@ -30,7 +28,7 @@ Included are bundled executables for multiple platfoms `text-layermacos`, `textl
 
 Run OCR on all pdfs contained in the input folder and convert the result into Labelbox's text layer JSON.
 
-`convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder> --concurrency=10`
+`convert --inputFolder <input_folder_containing_pdfs> --format <textract> --outputFolder <output_folder> --concurrency 10`
 
 `--inputFolder` The input folder containing the pdfs
 
