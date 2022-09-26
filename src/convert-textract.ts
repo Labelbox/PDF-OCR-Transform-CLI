@@ -2,11 +2,16 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import { concatMap, EMPTY, mergeMap, of, Subject } from 'rxjs';
 import { match } from 'ts-pattern';
-import { getConfig } from './text-layer-converter-cli';
-import { TextLayer, TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
+import { Config } from './text-layer-converter-cli';
+import { TextLayerGeometry, TextLayerGroup, TextLayerPage, TextLayerToken, Unit } from './types/text-layer-types';
 import { Block, Job, Polygon } from './types/textract-types';
 
-export const generateTextractTextLayer = (inputFolder: string, outputFolder: string, concurrency: number) => {
+export const generateTextractTextLayer = (
+  inputFolder: string,
+  outputFolder: string,
+  concurrency: number,
+  config: Config
+) => {
   const startTime = Date.now();
 
   fs.readdir(inputFolder, (error, filenames) => {
@@ -52,14 +57,14 @@ export const generateTextractTextLayer = (inputFolder: string, outputFolder: str
             }
 
             const finished$ = new Subject<void>();
-            const { s3Bucket } = getConfig();
+            const { bucketName } = config;
 
             console.log(`=-=-=-=-=-=-=-=-= ${i}/${pdfFilenames.length} =-=-=-=-=-=-=-=-=`)
-            console.log(`Uploading ${pdfFilename} to s3://${s3Bucket}`);
+            console.log(`Uploading ${pdfFilename} to s3://${bucketName}`);
 
             try {
               // Upload the pdf to S3 so that it can be processed by Textract
-              exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://${s3Bucket}`, (error) => {
+              exec(`aws s3 cp ${inputFolder}/${pdfFilename} s3://${bucketName}`, (error) => {
                 if (error) {
                   throw error;
                 }
@@ -68,7 +73,7 @@ export const generateTextractTextLayer = (inputFolder: string, outputFolder: str
                 // Run Textract OCR on the pdf
                 console.log(`Starting Textract OCR for ${pdfFilename}`)
                 exec(`aws textract start-document-text-detection \
-  --document-location '{"S3Object":{"Bucket":"${s3Bucket}","Name":"${pdfFilename}"}}'`,
+  --document-location '{"S3Object":{"Bucket":"${bucketName}","Name":"${pdfFilename}"}}'`,
                   async (error, stdout) => {
                     if (error) {
                       throw error;
