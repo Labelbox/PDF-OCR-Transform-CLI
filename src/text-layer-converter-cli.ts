@@ -3,20 +3,20 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { generateTextractTextLayer } from './convert-textract';
 import fs from 'fs';
+import { match } from 'ts-pattern';
+import { generateGCPVisionTextLayer } from './convert-gcp-vision';
 
 export type Config = {
-  s3Bucket: string;
+  bucketName: string;
 };
 
-const configBuffer = fs.readFileSync('config.json');
-const config = JSON.parse(configBuffer.toString()) as Config;
-console.log('Config: ', JSON.stringify(config))
-export const getConfig = () => ({ ...config });
+const config = JSON.parse(fs.readFileSync('config.json').toString()) as Config;
+const supportedOCRFormats = ['aws-textract', 'google-cloud-vision'];
 
 yargs(hideBin(process.argv))
   .command(
     'convert',
-    'Convert an OCR JSON file into the Labelbox text layer format',
+    'Convert an input folder containing pdfs into the Labelbox text layer format',
     (yargs) => (
       yargs
         .option('inputFolder', {
@@ -26,8 +26,8 @@ yargs(hideBin(process.argv))
         })
         .option('format', {
           type: 'string',
-          choices: ['textract'],
-          default: 'textract'
+          choices: supportedOCRFormats,
+          default: 'aws-textract'
         })
         .option('outputFolder', {
           type: 'string',
@@ -41,9 +41,10 @@ yargs(hideBin(process.argv))
         })
     ),
     ({ inputFolder, format, outputFolder, concurrency }) => {
-      if (format === 'textract') {
-        generateTextractTextLayer(inputFolder, outputFolder, concurrency);
-      }
+      match(format)
+        .with('aws-textract', () => generateTextractTextLayer(inputFolder, outputFolder, concurrency, config))
+        .with('google-cloud-vision', () => generateGCPVisionTextLayer(inputFolder, outputFolder, concurrency, config))
+        .otherwise(() => console.log(`Unsupported format: ${format}. Supported formats: ${JSON.stringify(supportedOCRFormats)}`))
     }
   )
   .strictCommands()
