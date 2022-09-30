@@ -29,7 +29,7 @@ def map_geometry(normalized_verticies: list):
 
 
 # Open the GCP OCR output JSON file
-with open(sys.argv[1], 'r') as file:
+with open(input_filename, 'r') as file:
     input_json = json.loads(file.read())
     text_layer = []
 
@@ -38,31 +38,52 @@ with open(sys.argv[1], 'r') as file:
         page_number = response['context']['pageNumber']
         for page in response['fullTextAnnotation']['pages']:
             def map_page(page):
-                def map_group(group):
-                    def map_token(token):
+                def map_paragraph_to_group(paragraph):
+                    def map_word_to_token(word):
                         return {
                             'id': str(uuid.uuid4()),
-                            'geometry': map_geometry(token['boundingBox']['normalizedVertices']),
-                            'content': ''
+                            'geometry': map_geometry(word['boundingBox']['normalizedVertices']),
+                            'content': functools.reduce(lambda token_content, symbol: token_content + symbol['text'], word['symbols'], '')
                         }
 
-                    def reduce_paragraphs(paragraph_list: list, paragraph):
-                        paragraph_list.append(paragraph)
-                        return paragraph_list
+                    # Extract all symbols in the paragraph to construct the group's content
+                    content = ''
+                    for word in paragraph['words']:
+                        for symbol in word['symbols']:
+                            content += symbol['text']
+                            if (symbol.get('property') is not None and symbol['property'].get('detectedBreak') is not None):
+                                if (symbol['property']['detectedBreak']['type'] == 'SPACE'):
+                                    content = content + ' '
+                                if (symbol['property']['detectedBreak']['type'] == 'HYPHEN'):
+                                    content += '-'
+                                if (symbol['property']['detectedBreak']['type'] == 'LINE_BREAK'):
+                                    content += '\n'
 
                     return {
                         'id': str(uuid.uuid4()),
-                        'content': '',
-                        'geometry': map_geometry(group['boundingBox']['normalizedVertices']),
-                        'tokens': []
+                        'content': content,
+                        'geometry': map_geometry(paragraph['boundingBox']['normalizedVertices']),
+                        'tokens': list(map(map_word_to_token, paragraph['words']))
                     }
+
+                    # group['content'] = functools.reduce(
+                    #     lambda group_content, token: group_content + token['content'] + ' ', group['tokens'], '').strip()
+
+                    # return group
+
+                def reduce_blocks_to_paragraphs(paragraphs: list, block):
+                    return paragraphs + block['paragraphs']
+
+                # Extract the paragraphs from all blocks on the page
+                paragraphs = functools.reduce(
+                    reduce_blocks_to_paragraphs, page['blocks'], [])
 
                 return {
                     'width': page['width'],
                     'height': page['height'],
                     'number': page_number,
                     'units': 'PERCENT',
-                    'groups': list(map(map_group, page['blocks']))
+                    'groups': list(map(map_paragraph_to_group, paragraphs)),
                 }
 
             text_layer.append(map_page(page))
