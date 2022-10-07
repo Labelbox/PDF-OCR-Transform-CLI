@@ -67,3 +67,34 @@ npm run start
 ```
 
 The CLI has been bundled with [pkg](https://www.npmjs.com/package/pkg).
+
+# Ad HOC Transform Scripts
+GCP OCR:
+To transform GCP OCR JSON format into Labelbox's format, run the python script located in 
+
+```
+/src/scripts/gcloud/gcp-vision-to-lb-text-layer.py
+```
+
+Example:
+```
+cd src/scripts/gcloud/ & python3 gcp-vision-to-lb-text-layer.py <input_filename.json>
+```
+
+This will output the corresponding in the same directory with "-lb-text-layer.json" appended to the filename.
+
+Adobe:
+
+To transform Adobe OCR JSON format into Labelbox's format, run the python script located in
+
+```
+/src/scripts/adobe/adobe-ocr-to-lb-text-layer.py
+```
+
+Example: 
+
+```
+cd src/scripts/adobe & python3 adobe-ocr-to-lb-text-layer.py
+```
+
+This script will attempt to transform all .json files in the directory in to Labelbox's text layer format.
