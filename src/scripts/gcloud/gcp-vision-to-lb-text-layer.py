@@ -9,8 +9,6 @@ import functools
 
 # Command line params <gcp_ocr_json_filepath>
 
-print('gcp_ocr_json_filepath', sys.argv)
-
 input_filename = sys.argv[1]
 
 if (not input_filename.endswith('.json')):
@@ -65,11 +63,6 @@ with open(input_filename, 'r') as file:
                         'geometry': map_geometry(paragraph['boundingBox']['normalizedVertices']),
                         'tokens': list(map(map_word_to_token, paragraph['words']))
                     }
-
-                    # group['content'] = functools.reduce(
-                    #     lambda group_content, token: group_content + token['content'] + ' ', group['tokens'], '').strip()
-
-                    # return group
 
                 def reduce_blocks_to_paragraphs(paragraphs: list, block):
                     return paragraphs + block['paragraphs']
