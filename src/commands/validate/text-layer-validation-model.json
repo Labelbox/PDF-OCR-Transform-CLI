@@ -1,0 +1,86 @@
+{
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/page"
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "number": {
+          "type": "number"
+        },
+        "units": {
+          "enum": ["POINTS", "PERCENT"]
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          }
+        }
+      },
+      "required": ["number", "units", "groups"]
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "geometry": {
+          "$ref": "#/$defs/geometry"
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/token"
+          }
+        }
+      },
+      "required": ["id", "content", "geometry", "tokens"]
+    },
+    "geometry": {
+      "type": "object",
+      "properties": {
+        "left": {
+          "type": "number"
+        },
+        "top": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
+      },
+      "required": ["left", "top", "width", "height"]
+    },
+    "token": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "geometry": {
+          "$ref": "#/$defs/geometry"
+        }
+      },
+      "required": ["id", "geometry", "content"]
+    }
+  }
+}
