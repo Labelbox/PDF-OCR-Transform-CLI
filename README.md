@@ -1,10 +1,13 @@
 # PDF-OCR-Transform-CLI
+
 CLI tool for transforming third party OCR formats into Labelbox's proprietary pdf text layer format. The CLI takes a folder containing pdfs as input, runs an OCR algorithm on the pdfs, and produces Labelbox text layer json files as an output.
 
 Currently Supported OCR formats:
-* Textract
+
+- Textract
 
 # Prerequisites
+
 The CLI invokes the `aws` cli behind the scenes to upload the pdfs to s3 and invoke Textract on them. You must have the aws cli installed gloablly and configured for your aws user.
 
 [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
@@ -12,7 +15,9 @@ The CLI invokes the `aws` cli behind the scenes to upload the pdfs to s3 and inv
 [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-prereqs.html)
 
 # Configuration
+
 There is a configuration file named `config.json` at the root level of the directory that must be updated before first running the CLI.
+
 ```
 {
   // The name of the bucket in your cloud provider that pdfs will be uploaded to
@@ -20,13 +25,13 @@ There is a configuration file named `config.json` at the root level of the direc
 }
 ```
 
-
 # Usage
+
 Included are bundled executables for multiple platfoms `text-layermacos`, `textlayer-linux`, `textlayer-win.exe`. These provide a more portable version of the cli that don't require you to install all the necessary dependencies with `npm install`.
 
 ## Commands:
 
-Run OCR on all pdfs contained in the input folder and convert the result into Labelbox's text layer JSON.
+`convert` - Run OCR on all pdfs contained in the input folder and convert the result into Labelbox's text layer JSON.
 
 `convert --inputFolder <input_folder_containing_pdfs> --format <aws-textract> --outputFolder <output_folder> --concurrency 10`
 
@@ -39,29 +44,43 @@ Run OCR on all pdfs contained in the input folder and convert the result into La
 `--concurrency` How many pdfs to process at the same time. CAUTION: Setting this value too high can result in rate limits being reached.
 
 Example (Mac)
+
 ```
 ./textlayer-macos convert --inputFolder input --format aws-textract --outputFolder output --concurrency 10
 ```
 
+`validate` - Validates the provided text layer json
+
+`validate --textLayerFilepath <text_layer_filepath>`
+
+Example (Mac)
+
+`./textlayer-macos validate --textLayerInputFile textlayer.json`
+
 Help page
+
 ```
 ./textLayer convert --help
 ```
 
 # (Optional) Build Scripts
+
 You only need to build the cli if you wish to run the source code locally as opposed to using the provided executables.
 
 Install Dependencies
+
 ```
 npm install
 ```
 
 Build the CLI
+
 ```
 npm run build
 ```
 
 Development - Build the CLI with hot reloading
+
 ```
 npm run start
 ```
@@ -69,14 +88,16 @@ npm run start
 The CLI has been bundled with [pkg](https://www.npmjs.com/package/pkg).
 
 # Ad HOC Transform Scripts
+
 GCP OCR:
-To transform GCP OCR JSON format into Labelbox's format, run the python script located in 
+To transform GCP OCR JSON format into Labelbox's format, run the python script located in
 
 ```
 /src/scripts/gcloud/gcp-vision-to-lb-text-layer.py
 ```
 
 Example:
+
 ```
 cd src/scripts/gcloud/ & python3 gcp-vision-to-lb-text-layer.py <input_filename.json>
 ```
@@ -91,7 +112,7 @@ To transform Adobe OCR JSON format into Labelbox's format, run the python script
 /src/scripts/adobe/adobe-ocr-to-lb-text-layer.py
 ```
 
-Example: 
+Example:
 
 ```
 cd src/scripts/adobe & python3 adobe-ocr-to-lb-text-layer.py
