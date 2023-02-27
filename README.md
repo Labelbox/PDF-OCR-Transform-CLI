@@ -37,7 +37,7 @@ Included are bundled executables for multiple platfoms `text-layermacos`, `textl
 
 `--inputFolder` The input folder containing the pdfs
 
-`--format` The OCR format to use (aws-textract, google-cloud-vision)
+`--format` The OCR format to use (aws-textract)
 
 `--outputFolder` The output folder to place the generated text layer json files
 

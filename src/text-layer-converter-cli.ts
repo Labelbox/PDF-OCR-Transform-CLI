@@ -12,7 +12,7 @@ export type Config = {
 };
 
 const config = JSON.parse(fs.readFileSync("config.json").toString()) as Config;
-const supportedOCRFormats = ["aws-textract", "google-cloud-vision"];
+const supportedOCRFormats = ["aws-textract"];
 
 yargs(hideBin(process.argv))
   .command(
@@ -46,14 +46,6 @@ yargs(hideBin(process.argv))
       match(format)
         .with("aws-textract", () =>
           generateTextractTextLayer(
-            inputFolder,
-            outputFolder,
-            concurrency,
-            config
-          )
-        )
-        .with("google-cloud-vision", () =>
-          generateGCPVisionTextLayer(
             inputFolder,
             outputFolder,
             concurrency,
