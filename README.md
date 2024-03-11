@@ -119,3 +119,19 @@ cd src/scripts/adobe & python3 adobe-ocr-to-lb-text-layer.py
 ```
 
 This script will attempt to transform all .json files in the directory in to Labelbox's text layer format.
+
+Google Document AI:
+
+To transform Google Document AI format into Labelbox's format, run the python script located in
+
+```
+/src/scripts/adobe/document-AI-to-lb-text-layer.py
+```
+
+Example:
+
+```
+cd src/scripts/documentAI & python3 document-AI-to-lb-text-layer.py
+```
+
+This script will attempt to transform all .json files in the directory in to Labelbox's text layer format.
