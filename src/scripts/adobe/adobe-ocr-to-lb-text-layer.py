@@ -49,14 +49,22 @@ for json_filename in json_files:
         
         page_width = 0
         page_height = 0
+        page_left_origin = 0
+        page_bottom_origin = 0
         
         for page in json_content['pages']:
             if page['page_number'] == element['Page']:
                 page_width = page['width']
                 page_height = page['height']
                 
-        
-        [left, bottom, right, top] = bounds
+                # L,B,R,T bounds of page CropBox
+                page_crop_box = page['boxes'].get('CropBox', [0, 0])
+                page_left_origin = page_crop_box[0]
+                page_bottom_origin = page_crop_box[1]
+
+        [left, right] = [c - page_left_origin for c in bounds[0:3:2]]
+        [bottom, top] = [c - page_bottom_origin for c in bounds[1:4:2]]
+
         height = abs(top - bottom)
         width = abs(right - left)
         
@@ -81,7 +89,8 @@ for json_filename in json_files:
         for i in range(len(element['CharBounds'])):
             tokenList = element['CharBounds']
             tokenValue = element['CharBounds'][i]
-            [left, bottom, right, top] = tokenValue
+            [left, right] = [c - page_left_origin for c in tokenValue[0:3:2]]
+            [bottom, top] = [c - page_bottom_origin for c in tokenValue[1:4:2]]
             
             height = abs(top - bottom)
             width = abs(right - left)
